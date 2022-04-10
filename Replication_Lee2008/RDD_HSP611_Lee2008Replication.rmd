@@ -1,0 +1,329 @@
+---
+title: "Lee2008_Replication"
+author: "Sankha Mitra"
+date: "02/12/2021"
+output:
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+The following is a replication exercise of the paper by Lee 2008, 'Randomized experiments from non-random selection in U.S. House Elections', published in Journal of Econometrics
+
+The empirical part of the paper has 5 figures and 2 tables 
+
+Figure 1 shows the trends of proportion of incumbent party (party which won respective district in previous election), individual candidates (winners and losers) who won the election in period after. 
+
+```{r plot 1, include = TRUE, message = FALSE, warning=FALSE}
+# Figure 1 
+
+library(haven)
+data_figure1 <- read_dta('D:/Semester3_Courses/HSP611/Assignment5/Lee2008/Lee2008/figure1.dta')
+colnames(data_figure1) <- c("Year", "Incumbent Party", "Winning Candidates", "Runner-Up Candidates")
+
+## Missing values (NAs) are replaced by year averages
+
+data_figure1$`Incumbent Party`[is.na(data_figure1$`Incumbent Party`)] <- mean(data_figure1$`Incumbent Party`, na.rm = TRUE)
+data_figure1$`Winning Candidates`[is.na(data_figure1$`Winning Candidates`)] <- mean(data_figure1$`Winning Candidates`, na.rm = TRUE)
+data_figure1$`Runner-Up Candidates`[is.na(data_figure1$`Runner-Up Candidates`)] <- mean(data_figure1$`Runner-Up Candidates`, na.rm = TRUE)
+
+## Plotting Figure 1
+
+plot(data_figure1$Year, data_figure1$`Incumbent Party`, type = 'o',pch = 15, col = 'black', lty = 1, ylim = c(0,1), xlab = "Year", ylab = "Proportion Winning Election", main = "Electoral Success of U.S. House Incumbents")
+lines(data_figure1$Year, data_figure1$`Winning Candidates`, type = 'o', pch = 0, col = 'black', lty = 2)
+lines(data_figure1$Year, data_figure1$`Runner-Up Candidates`, type = 'o', pch = 4, col = 'black', lty = 3)
+legend(1950,0.4, legend = c("Incumbent Party", "Winning Candidates","Runner-Up Candidates"), pch = c(15,0,4), lty = c(1,2,3)) 
+```
+
+Figure 2a and 2b show estimated probabilities of a Democrat candidate running and winning an election in period (t+1) as a function of democrat's vote share margin of victory in election of time period t
+
+Horizontal axis shows difference between vote shares of Democrat and her/his most prominent opposition (Republican in almsot all the cases) candidate's vote shares 
+
+```{r plot 2, include = TRUE, message = FALSE, warning = FALSE}
+## Figure 2 
+
+library(haven)
+data_figure2 <- read_dta('D:/Semester3_Courses/HSP611/Assignment5/Lee2008/Lee2008/individ_final.dta')
+
+data_figure2a <- data.frame(data_figure2$yearel, data_figure2$use, data_figure2$difshare, data_figure2$mmyoutcomenext, data_figure2$mpmyoutcomenext ) 
+data_figure2a <- na.omit(data_figure2a)
+colnames(data_figure2a) <- c("yearel","use","difshare","mmyoutcomenext","mpmyoutcomenext")
+
+library(dplyr)
+library(ggplot2)
+
+data_figure2a %>%
+mutate(D = as.factor(ifelse(difshare >= 0, 1, 0 ))) %>%
+  ggplot(aes(x = difshare, y = mmyoutcomenext, col = D)) + geom_line(aes(x = difshare, y = mpmyoutcomenext), size = 2, type = "solid") + geom_point(aes(x= difshare, y = mmyoutcomenext)) + xlim(-0.25,0.25) + ylim(0,1) + labs(title = "Figure 2a", x = "Democratic Vote Share Margin of Victory, Election t " ,y = "Probability of Winning Election, t+1") + geom_vline(xintercept = 0, type = "dashed")                        
+
+
+
+data_figure2b <- data.frame(data_figure2$yearel, data_figure2$use, data_figure2$difshare, data_figure2$mofficeexp, data_figure2$mpofficeexp)
+data_figure2b <- na.omit(data_figure2b)
+colnames(data_figure2b) <- c("yearel","use","difshare","mofficeexp","mpofficeexp")
+
+library(dplyr)
+library(ggplot2)
+
+data_figure2b %>%
+  mutate(D = as.factor(ifelse(difshare >= 0, 1, 0 ))) %>%
+  ggplot(aes(x = difshare, y = mofficeexp, col = D)) + geom_line(aes(x = difshare, y = mpofficeexp), size = 2, type = "solid") + geom_point(aes(x= difshare, y = mofficeexp)) + xlim(-0.25,0.25) + ylim(0,5) + labs(title = "Figure 2b", x = "Democratic Vote Share Margin of Victory, Election t " ,y = "Number of Past Victories as of Election t") + geom_vline(xintercept = 0, type = "dashed")                        
+
+```
+
+To the right of the vertical line at 0.00, Democrat candidate won election in time t. 
+There is a discontinuous jump to the right of that line, indicating the causal effect of incumbency 
+
+[Note that the colour of the plot changes to the right of the line of discontinuity; this is for convenience in coding in R. Without introducing two different colours for two different categories based on values of x-variable  (x-variable >= 0 would give one colour, x < 0 would give another colour), the discontinuity is not obtained and a broad vertical line joins the two discontinuous points]     
+
+The smooth line to the right and left side of of the vertical line indicate logit fit in figure 2a and polynomial fit in figure 2b. The scatter to the right and left of vertical line indicate local averages (in both the figures 2a and 2b)
+
+The y-variable changes in figure 3. The considered variable is whether the democrat candidate gets nomination in election of time-period (t+1)    
+
+```{r plot 3, include = TRUE, message = FALSE, warning=FALSE}
+library(haven) 
+data_figure3 <- read_dta('D:/Semester3_Courses/HSP611/Assignment5/Lee2008/Lee2008/individ_final.dta')
+
+
+library(dplyr)
+library(ggplot2)
+
+
+data_figure3a <- data.frame(data_figure3$yearel, data_figure3$use , data_figure3$difshare, data_figure3$mrunagain, data_figure3$mprunagain)
+
+data_figure3a <- na.omit(data_figure3a)
+colnames(data_figure3a) <- c("yearel","use","difshare","mrunagain","mprunagain")
+
+data_figure3a %>%
+  mutate(D = as.factor(ifelse(difshare >= 0, 1, 0))) %>%
+  ggplot(aes(x = difshare, y = mrunagain, col = D)) + geom_line(aes(x = difshare, y = mprunagain), size = 3, linetype = "solid") + geom_point(aes(x = difshare, y = mrunagain)) + xlim(-0.25,0.25) + ylim(0,1) + labs(title = "Figure 3a", x = "Democratic Vote Share Margin of Victory, Election t", y = "Probability of Candidacy, Election t+1") + geom_vline(xintercept = 0, type = "dashed")
+
+
+
+data_figure3b <- data.frame(data_figure3$yearel, data_figure3$use, data_figure3$difshare, data_figure3$melectexp, data_figure3$mpelectexp)
+
+data_figure3b <- na.omit(data_figure3b)
+colnames(data_figure3b) <- c("yearel","use","difshare","melectexp","mpelectexp")
+
+data_figure3b %>%
+  mutate(D = as.factor(ifelse(difshare >= 0, 1, 0))) %>%
+  ggplot(aes(x = difshare, y = melectexp, col = D)) + geom_line(aes(x = difshare, y = mpelectexp), size = 2, linetype = "solid") + geom_point(aes(x = difshare, y = melectexp)) + xlim(-0.25,0.25) + ylim(0,5) + labs(title = "Figure 3b", x = "Democratic Vote Share Margin of Victory, Election t", y = "No. of Past Attempts as of election t") + geom_vline(xintercept = 0, type = "dashed")
+
+```
+
+As is evident from figure 3, the causal effect of incumbency on chances of winning a nomination in upcoming election (election in time period t+1) for Democratic party is huge (0.40 in probability, evident from figure 3a).    
+
+```{r plot 4, include = TRUE, message = FALSE, warning=FALSE}
+
+## Figure 4 
+library(haven)
+data_figure4 <- read_dta('D:/Semester3_Courses/HSP611/Assignment5/Lee2008/Lee2008/group_final.dta')
+
+## Figure 4 a
+data_figure4a <- data.frame(data_figure4$yearel, data_figure4$use, data_figure4$difdemshare, data_figure4$mdemsharenext, data_figure4$mpdemsharenext)
+
+data_figure4a <- na.omit(data_figure4a)
+colnames(data_figure4a) <- c("yearel","use","difdemshare","mdemsharenext","mpdemsharenext")
+
+library(dplyr)
+library(ggplot2)
+
+data_figure4a %>%
+  mutate(D = as.factor(ifelse(difdemshare >= 0, 1, 0))) %>%
+  ggplot(aes(x = difdemshare, y = mdemsharenext, col = D)) + geom_line(aes(x = difdemshare, y = mpdemsharenext), size = 2, linetype = "solid") + geom_point(aes(x = difdemshare, y = mdemsharenext)) + xlim(-0.25,0.25) + ylim(0.3,0.7) + labs(title = "Figure 4a", x = "Democratic Vote Share Margin of Victory, Election t", y = "Vote Share, election t+1") + geom_vline(xintercept = 0, type = "dashed")
+
+data_figure4b <- data.frame(data_figure4$yearel, data_figure4$use, data_figure4$difdemshare, data_figure4$mdemshareprev, data_figure4$mpdemshareprev)   
+data_figure4b <- na.omit(data_figure4b)
+colnames(data_figure4b) <- c("yearel","use","difdemshare","mdemshareprev","mpdemshareprev") 
+
+data_figure4b %>%
+  mutate(D = as.factor(ifelse(difdemshare >= 0, 1, 0))) %>%
+  ggplot(aes(x = difdemshare, y = mdemshareprev, col = D)) + geom_line(aes(x = difdemshare, y = mpdemshareprev), size = 2, linetype = "solid") + geom_point(aes(x = difdemshare, y = mdemshareprev)) + xlim(-0.25,0.25) + ylim(0.3,0.7) + labs(title = "Figure 4b", x = "Democratic Vote Share Margin of Victory, Election t", y = "Vote Share, election t-1") + geom_vline(xintercept = 0, type = "dashed")
+
+```
+
+The causal advantage of incumbency on vote share of democratic candidate in upcoming election is found to be around 7-8 % (a prominent effect therefore). This can be seen in figure 4 (figure 4a). 
+
+In figure 5, the y-variable considered is probability of democratic party's victory in election of time-period (t+1) 
+
+```{r plot 5, include = TRUE, message = FALSE, warning=FALSE}
+## Figure 5 
+
+library(haven)
+data_figure5 <- read_dta('D:/Semester3_Courses/HSP611/Assignment5/Lee2008/Lee2008/group_final.dta') 
+
+data_figure5a <- data.frame(data_figure5$yearel, data_figure5$use, data_figure5$difdemshare, data_figure5$mdemwinnext, data_figure5$mpdemwinnext)
+data_figure5a <- na.omit(data_figure5a)
+colnames(data_figure5a) <- c("yearel","use","difdemshare","mdemwinnext", "mpdemwinnext")
+
+
+library(dplyr)
+library(ggplot2)
+
+data_figure5a %>%
+  mutate(D = as.factor(ifelse(difdemshare >= 0, 1, 0))) %>%
+  ggplot(aes(x = difdemshare, y = mdemwinnnext, col = D)) + geom_line(aes(x = difdemshare, y = mpdemwinnext), size = 2, linetype = "solid") + geom_point(aes(x = difdemshare, y = mdemwinnext)) + xlim(-0.25,0.25) + ylim(0,1) + labs(title = "Figure 5a", x = "Democratic Vote Share Margin of Victory, Election t", y = "Probability of Victory, election t+1") + geom_vline(xintercept = 0, type = "dashed")
+
+
+data_figure5b <- data.frame(data_figure5$yearel, data_figure5$use, data_figure5$difdemshare, data_figure5$mdemwinprev, data_figure5$mpdemwinprev)
+data_figure5b <- na.omit(data_figure5b)
+colnames(data_figure5b) <- c("yearel","use","difdemshare","mdemwinprev", "mpdemwinprev")
+
+data_figure5b %>%
+  mutate(D = as.factor(ifelse(difdemshare >= 0, 1, 0))) %>%
+  ggplot(aes(x = difdemshare, y = mdemwinprev, col = D)) + geom_line(aes(x = difdemshare, y = mpdemwinprev), size = 2, linetype = "solid") + geom_point(aes(x = difdemshare, y = mdemwinprev)) + xlim(-0.25,0.25) + ylim(0,1) + labs(title = "Figure 5b", x = "Democratic Vote Share Margin of Victory, Election t", y = "Probability of Victory, election t-1") + geom_vline(xintercept = 0, type = "dashed")
+
+```
+
+The causal effect of incumbency on probability of Democratic party winning the next election (in time period t+1) would be around 0.35 
+
+Table 1 presents electoral outcomes and pre-determined election characteristics. The time-period considered is 1948-1996. It is to be noted here that the data set 'table_one_final.dta' has the mean, estimated standard errors and standard deviations of the variables as separate rows in the data frame. The aim here is to create a single data-frame with one row containing the mean, the estimated standard error in () parentheses and standard deviations in [] brackets.  
+
+```{r table 1, include = TRUE, message = FALSE, warning=FALSE}
+## Table 1
+library(haven)
+data_table1 <- read_dta('D:/Semester3_Courses/HSP611/Assignment5/Lee2008/Lee2008/table_one_final.dta')
+
+data_table1$categories <- c('demsharenext','demsharenext','demsharenext', 'demwinnext','demwinnext','demwinnext','demshareprev','demshareprev','demshareprev', 'demwinprev','demwinprev','demwinprev','demofficeexp','demofficeexp','demofficeexp','othofficeexp','othofficeexp','othofficeexp','demelectexp','demelectexp','demelectexp','othelectexp','othelectexp','othelectexp','obs')                                               
+
+library(tidyverse)
+library(dplyr)
+library(sqldf)
+
+means <- data_table1 %>%
+  group_by(data_table1$categories) %>%
+  filter(row_number() == 1)
+
+est_sd <- data_table1 %>%
+  group_by(data_table1$categories) %>%
+  filter(row_number() == 2 )
+
+std_dev <- data_table1 %>%
+  group_by(data_table1$categories) %>%
+  filter(row_number() == 3 ) 
+
+means <- means[-9,c(1:9)]
+est_sd <- est_sd[,c(1:9)]
+std_dev <- std_dev[,c(1:9)]
+
+
+df_table1_1 <- est_sd
+df_table1_1[-1] <- mapply(function(x,y,z)  paste0(x, "(", y, ")","[",z,"]"), means[-1], est_sd[-1], std_dev[-1])
+
+colnames(df_table1_1) <- c("Variable","Winner(All)","Loser(All)","Winner(|Margin|<0.5)", "Loser(|Margin|<0.5)", "Winner(|Margin|<0.05)","Loser(|Margin|<0.05)","Winner(Parametric Fit)", "Loser (Parametric fit)" )
+rownames(df_table1_1) <- c("Democrat Vote Share, election t+1", "Democrat win prob., election t+1","Democrat vote share, election t-1","Democrat win prob., election t-1", "Democrat political experience","Opposition political experience","Democrat electoral experience", "Opposition electoral experience")
+
+df_table_2 <- df_table1_1[,-1]
+colnames(df_table_2) <- c("Winner(All)","Loser(All)","Winner(|Margin|<0.5)", "Loser(|Margin|<0.5)", "Winner(|Margin|<0.05)","Loser(|Margin|<0.05)","Winner(Parametric Fit)", "Loser (Parametric fit)" )
+
+
+write.csv(df_table_2, file = "D:/Semester3_Courses/HSP611/Assignment5/Lee2008/Lee2008/RDD_Replication/Table1_RDD.csv")
+
+```
+
+Table 2 indicates the effects of winning an election on the subsequent party electoral success. The estimated standard errors reported here are consistent with state-district decade cluster sampling.Seven covariates are considered and presented in the published regression table, which are "victory, election t", "Dem. vote share, t-1", "Dem. win, t-1", "Dem. political experience", "Opp. Political experience", "Dem. electoral experience" and "Opp. electoral experience".      
+
+
+```{r table 2, include = TRUE, message = FALSE, warning=FALSE, results= FALSE}
+## Table 2
+library(haven)
+data_table2 <- read_dta('D:/Semester3_Courses/HSP611/Assignment5/Lee2008/Lee2008/table_two_final.dta')
+
+data_table2 <- na.omit(data_table2)
+covariates_poly <- cbind(data_table2$difdemshare, data_table2$difdemshare2, data_table2$rdifdemshare3, data_table2$difdemshare4, data_table2$rdifdemshare, data_table2$rdifdemshare2, data_table2$rdifdemshare3, data_table2$rdifdemshare4, data_table2$right)
+
+library(lmtest)
+
+fit1_rdd <- lm(data_table2$demsharenext ~ covariates_poly, data = data_table2 )
+summary(fit1_rdd)
+
+fit2_rdd <- lm(data_table2$demsharenext ~ covariates_poly + data_table2$demshareprev + data_table2$demwinprev, data = data_table2)
+summary(fit2_rdd)
+
+fit3_rdd <- lm(data_table2$demsharenext ~ covariates_poly + data_table2$demofficeexp + data_table2$othofficeexp, data = data_table2)
+summary(fit3_rdd)
+
+fit4_rdd <- lm(data_table2$demsharenext ~ covariates_poly + data_table2$demelectexp + data_table2$othelectexp, data = data_table2)
+summary(fit4_rdd)
+
+fit5_rdd <- lm(data_table2$demsharenext ~ covariates_poly + data_table2$demshareprev + data_table2$demwinprev + data_table2$demofficeexp + data_table2$othofficeexp + data_table2$demelectexp + data_table2$othelectexp, data = data_table2)
+summary(fit5_rdd)
+
+fit_pre6_rdd <- lm(data_table2$demsharenext ~  data_table2$demshareprev + data_table2$demwinprev + data_table2$demofficeexp + data_table2$othofficeexp + data_table2$demelectexp + data_table2$othelectexp) ## creating the dependent variable for 6th regression of table 2
+demsharenextres <- residuals(fit_pre6_rdd)
+
+fit6_rdd <- lm(demsharenextres ~ covariates_poly, data = data_table2) 
+summary(fit6_rdd)
+
+fit7_rdd <- lm(data_table2$difdemsharenext ~ covariates_poly +  data_table2$demwinprev + data_table2$demofficeexp + data_table2$othofficeexp + data_table2$demelectexp + data_table2$othelectexp, data = data_table2)
+summary(fit7_rdd)
+
+fit8_rdd <- lm(data_table2$demshareprev ~ covariates_poly +  data_table2$demwinprev + data_table2$demofficeexp + data_table2$othofficeexp + data_table2$demelectexp + data_table2$othelectexp, data = data_table2)
+summary(fit8_rdd)
+
+## Generating clustered standard errors
+
+library(multiwayvcov)
+cluster_rdd1 <- cluster.vcov(fit1_rdd, data_table2$statedisdec)
+r.se_rdd1 <- sqrt(diag(cluster_rdd1))
+
+cluster_rdd2 <- cluster.vcov(fit2_rdd, data_table2$statedisdec)
+r.se_rdd2 <- sqrt(diag(cluster_rdd2))
+
+cluster_rdd3 <- cluster.vcov(fit3_rdd, data_table2$statedisdec)
+r.se_rdd3 <- sqrt(diag(cluster_rdd3))
+
+cluster_rdd4 <- cluster.vcov(fit4_rdd, data_table2$statedisdec)
+r.se_rdd4 <- sqrt(diag(cluster_rdd4))
+
+cluster_rdd5 <- cluster.vcov(fit5_rdd, data_table2$statedisdec)
+r.se_rdd5 <- sqrt(diag(cluster_rdd5))
+
+cluster_rdd6 <- cluster.vcov(fit6_rdd, data_table2$statedisdec)
+r.se_rdd6 <- sqrt(diag(cluster_rdd6))
+
+cluster_rdd7 <- cluster.vcov(fit7_rdd, data_table2$statedisdec)
+r.se_rdd7 <- sqrt(diag(cluster_rdd7))
+
+cluster_rdd8 <- cluster.vcov(fit8_rdd, data_table2$statedisdec)
+r.se_rdd8 <- sqrt(diag(cluster_rdd8))
+
+library(stargazer)
+
+stargazer(fit1_rdd, fit2_rdd, fit3_rdd, fit4_rdd, fit5_rdd, fit6_rdd, fit7_rdd, fit8_rdd,se = list(r.se_rdd1, r.se_rdd2, r.se_rdd3, r.se_rdd4, r.se_rdd5, r.se_rdd6, r.se_rdd7, r.se_rdd8), title = "Table 2: Effect of winning an election on subsequent party electoral success" ,type = 'text',keep = c("covariates_poly9", "demshareprev", "demwinprev","demofficeexp","othofficeexp", "demelectexp","othelectexp"), covariate.labels = c("Victory, election t", "Dem. vote share, t+1", "Dem. win, t+1", "Dem. political experience", "Opp. political experience", "Dem. electoral experience", "Opp. electoral experience"), out = 'D:/Semester3_Courses/HSP611/Assignment5/Lee2008/Lee2008/RDD_Replication/Table2.txt')                                                                    
+```
+
+
+It is to be noted that the coefficients of the first covariate, "victory, election t", in the replication exercise are significantly different from coefficients of same covariate in original paper. However, the coefficients of other explanatory variables are same. 
+
+It is to be noted that in the last column, where we estimate if the victory in election t has an impact on the vote share in election of time-period (t-1). Ideally, there should be insignificant (zero in fact) impact. That is the result obtained in original paper. In replication exercise, although coefficients of "vote share in election t" are obtained to be different from those in original paper, the impact is obtained to be insignificant and almost 0 (0.009). This result is fortunately consistent. 
+
+Table 2 could not be added to this file due to alignment problems and has been uploaded as a .txt file named 'Table2.txt' in the directory of RDD (Assignment 5).  
+
+Table 1 has been shared as a csv file 
+
+
+
+References: 
+1. Lee, D.S. (2008), 'Randomized experiments from non-random selections in U.S. House elections', Journal of Econometrics, Volume 142 Issue 2, Pages 675-697
+
+2. Hlavac, Marek (2018), stargazer: Well-Formatted Regression and Summary Statistics Tables, R Package version 5.2.1
+
+
+
+q()
+
+
+
+
+
+
+
+
+
+
+
+
+
